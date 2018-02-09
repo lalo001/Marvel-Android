@@ -1,4 +1,4 @@
-package android.lalo.com.marvel;
+package android.lalo.com.marvel.pojo;
 
 import android.util.Log;
 

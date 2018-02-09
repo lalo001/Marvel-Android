@@ -1,6 +1,8 @@
-package android.lalo.com.marvel;
+package android.lalo.com.marvel.adapters;
 
 import android.content.Context;
+import android.lalo.com.marvel.R;
+import android.lalo.com.marvel.pojo.iTunes;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,15 +37,15 @@ public class iTunesArrayAdapter extends ArrayAdapter<iTunes>{
 
         if (convertView == null){
             //LayoutInflater reconstruye una vista
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.itunes_layout,parent, false);
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.marvel_layout,parent, false);
         }
 
-        TextView collectioName = (TextView)convertView.findViewById(R.id.CollectionName);
-        TextView trackName = (TextView)convertView.findViewById(R.id.TrackName);
-        TextView trackPrice = (TextView)convertView.findViewById(R.id.TrackPrice);
+        TextView collectioName = (TextView)convertView.findViewById(R.id.collection);
+//        TextView trackName = (TextView)convertView.findViewById(R.id.TrackName);
+//        TextView trackPrice = (TextView)convertView.findViewById(R.id.TrackPrice);
         collectioName.setText(iTunes.collectionName);
-        trackName.setText(iTunes.trackName);
-        trackPrice.setText(iTunes.trackPrice+"");
+//        trackName.setText(iTunes.trackName);
+//        trackPrice.setText(iTunes.trackPrice+"");
 
         //Return ese renglon
         return convertView;

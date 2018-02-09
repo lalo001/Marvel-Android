@@ -1,4 +1,4 @@
-package android.lalo.com.marvel;
+package android.lalo.com.marvel.pojo;
 
 /**
  * Created by Lalo on 1/30/18.

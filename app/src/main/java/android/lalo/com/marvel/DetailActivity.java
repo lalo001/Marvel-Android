@@ -1,32 +1,25 @@
 package android.lalo.com.marvel;
 
-import android.content.Intent;
+import android.graphics.Bitmap;
 import android.lalo.com.marvel.adapters.MarvelAdapter;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.InputType;
-import android.text.TextWatcher;
-import android.view.KeyEvent;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ListView;
+import android.util.LruCache;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.NetworkImageView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.net.HttpURLConnection;
@@ -34,147 +27,73 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class DetailActivity extends AppCompatActivity {
 
-    private ArrayAdapter<String> arrayAdapter;
-    private ListView listView;
-    private EditText editText;
-    private Button button;
-    private MarvelAdapter marvelAdapter;
-
+    private String currentId;
     private RequestQueue mQueue;
+    private TextView nameTextView;
+    private TextView dateTextView;
+    private TextView descriptionTextView;
+    private NetworkImageView networkImageView;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        button = (Button) findViewById(R.id.button);
-        editText = (EditText) findViewById(R.id.editText);
-        editText.setText("");
-        editText.setHint("Enter offset");
-        editText.setInputType(InputType.TYPE_CLASS_NUMBER);
-        editText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+        setContentView(R.layout.activity_detail);
+        setTitle("Character Detail");
 
-                updateOffset(editText);
-
-                return true;
-            }
-        });
-        editText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                editText.setError(null);
-            }
-
-            @Override
-            public void afterTextChanged(Editable editable) {
-
-            }
-        });
-        listView = (ListView) findViewById(R.id.listView);
-        marvelAdapter = new MarvelAdapter(this, R.layout.marvel_layout, new ArrayList<MarvelDude>());
-        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new ArrayList<String>());
-        listView.setAdapter(marvelAdapter);
+        currentId = (String) getIntent().getSerializableExtra("id");
+        nameTextView = (TextView) findViewById(R.id.nameTextView);
+        dateTextView = (TextView) findViewById(R.id.dateTextView);
+        descriptionTextView = (TextView) findViewById(R.id.descriptionTextView);
+        networkImageView = (NetworkImageView) findViewById(R.id.networkImageView);
 
         mQueue = VolleySingleton.getInstance(this).getRequestQueue();
-
-        jsonMarvel(getMarvelString("0"), marvelAdapter);
-
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                MarvelDude md = marvelAdapter.getItem(i);
-                Intent intent = new Intent(MainActivity.this, DetailActivity.class);
-                intent.putExtra("id", md.id);
-                startActivity(intent);
-            }
-        });
+        jsonMarvel(getMarvelString(currentId));
     }
 
-    public void updateOffset(View view) {
-        if (editText.getText() != null) {
-            try {
-                if (Integer.parseInt(editText.getText().toString()) > 900) {
-                    jsonMarvel(getMarvelString("900"), marvelAdapter);
-                } else {
-                    jsonMarvel(getMarvelString(editText.getText().toString()), marvelAdapter);
-                }
-            }catch (Exception e) {
-                e.printStackTrace();
-                editText.setError("Not a number.");
-            }
-        }
-    }
-
-//    public class ProcesaJson extends AsyncTask<URL, Integer, ArrayList<iTunes>> {
-//        private iTunesArrayAdapter adapter;
-//
-//        public ProcesaJson(iTunesArrayAdapter adapter) {
-//            this.adapter = adapter;
-//        }
-//
-//        @Override
-//        protected ArrayList<iTunes> doInBackground(URL... urls) {
-//            Json json = new Json();
-//            String jsonString = json.serviceCall(urls[0].toString());
-//            ArrayList<iTunes> arrayList = new ArrayList<>();
-//
-//            try {
-//                JSONObject jsonObject = new JSONObject(jsonString);
-//                JSONArray jsonArray = jsonObject.getJSONArray("results");
-//                for (int i = 0; i < jsonArray.length(); i++) {
-//                    JSONObject data = jsonArray.getJSONObject(i);
-//                    iTunes itunes = new iTunes();
-//                    itunes.collectionName = data.getString("collectionName");
-//                    itunes.collectionName = data.getString("trackPrice");
-//                    itunes.collectionName = data.getString("trackPrice");
-//                }
-//            } catch (JSONException e) {
-//                e.printStackTrace();
-//            }
-//
-//            return arrayList;
-//        }
-//
-//        @Override
-//        protected void onPostExecute(ArrayList<iTunes> strings) {
-//            adapter.clear();
-//            adapter.addAll(strings);
-//            adapter.notifyDataSetChanged();
-//        }
-//    }
 
     private final String LOG_TAG = "MARVEL";
 
     private static char[] HEXCodes = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 
-    private void jsonMarvel(String url, final MarvelAdapter arrayAdapter) {
-        arrayAdapter.clear();
+    private void jsonMarvel(String url) {
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 try {
                     JSONObject data = response.getJSONObject("data");
                     JSONArray jsonArray = data.getJSONArray("results");
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        JSONObject jsonObject = jsonArray.getJSONObject(i);
-                        JSONObject thumbnail = jsonObject.getJSONObject("thumbnail");
-                        String string = thumbnail.getString("path") + "/standard_amazing" + "." + thumbnail.getString("extension");
-                        MarvelDude marvelDude = new MarvelDude();
-                        marvelDude.id = jsonObject.getLong("id") + "";
-                        marvelDude.name = jsonObject.getString ("name");
-                        marvelDude.url = string;
-                        arrayAdapter.add(marvelDude);
+                    JSONObject jsonObject = jsonArray.getJSONObject(0);
+                    JSONObject thumbnail = jsonObject.getJSONObject("thumbnail");
+                    String imageUrl = thumbnail.getString("path") + "/standard_amazing" + "." + thumbnail.getString("extension");
+                    String name = jsonObject.getString("name");
+                    String numberOfComics = jsonObject.getJSONObject("comics").getInt("available") + "";
+                    String numberOfSeries = jsonObject.getJSONObject("series").getInt("available") + "";
+                    String numberOfStories = jsonObject.getJSONObject("stories").getInt("available") + "";
+                    String description = jsonObject.getString("description");
+                    RequestQueue requestQueue = VolleySingleton.getInstance(getApplicationContext()).getRequestQueue();
+                    nameTextView.setText(name);
+                    dateTextView.setText("Appears to date in " + numberOfComics + " comics, " + numberOfSeries + " series and " + numberOfStories + " stories.");
+                    if (description.isEmpty()) {
+                        descriptionTextView.setText("No Description Available");
+                    } else {
+                        descriptionTextView.setText(description);
                     }
-                    arrayAdapter.notifyDataSetChanged();
+                    ImageLoader imageLoader = new ImageLoader(requestQueue, new ImageLoader.ImageCache() {
+                        private final LruCache<String, Bitmap> cache = new LruCache<String, Bitmap>(10);
+                        @Override
+                        public Bitmap getBitmap(String url) {
+                            return cache.get(url);
+                        }
+
+                        @Override
+                        public void putBitmap(String url, Bitmap bitmap) {
+                            cache.put(url, bitmap);
+                        }
+                    });
+                    networkImageView.setImageUrl(imageUrl, imageLoader);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -188,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         mQueue.add(request);
     }
 
-    public String getMarvelString(String offset) {
+    public String getMarvelString(String id) {
         String ts = Long.toString(System.currentTimeMillis() / 1000);
         String apikey = "1681a9eefcf8fbf43de66c59727718da";
         String hash = md5(ts + "ede49375699321e3736436b53011574333433f40" + "1681a9eefcf8fbf43de66c59727718da");
@@ -199,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
                 Conexión con el getway de marvel
             */
         final String CHARACTER_BASE_URL =
-                "http://gateway.marvel.com/v1/public/characters";
+                "http://gateway.marvel.com/v1/public/characters/" + id;
 
         HttpURLConnection urlConnection = null;
         BufferedReader reader = null;
@@ -211,16 +130,12 @@ public class MainActivity extends AppCompatActivity {
         final String TIMESTAMP = "ts";
         final String API_KEY = "apikey";
         final String HASH = "hash";
-        final String ORDER = "orderBy";
 
         Uri builtUri;
         builtUri = Uri.parse(CHARACTER_BASE_URL+"?").buildUpon()
                 .appendQueryParameter(TIMESTAMP, ts)
                 .appendQueryParameter(API_KEY, apikey)
                 .appendQueryParameter(HASH, hash)
-                .appendQueryParameter(ORDER, "name")
-                .appendQueryParameter("limit", "100")
-                .appendQueryParameter("offset", offset)
                 .build();
         return builtUri.toString();
     }
@@ -366,8 +281,6 @@ public class MainActivity extends AppCompatActivity {
             result[j++] = HEXCodes[b >> 4];
             result[j++] = HEXCodes[b & 0xf];
         }
-        return new String(result);}
+        return new String(result);
+    }
 }
-
-
-
